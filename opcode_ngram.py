@@ -1,50 +1,72 @@
 import os
 from tqdm import tqdm
 from collections import defaultdict
+import csv
+import time
+def main():
+	ori_path=os.getcwd()
+	total_2gram=defaultdict(lambda: 0)
+	total_3gram=defaultdict(lambda: 0)
+	total_4gram=defaultdict(lambda: 0)
+	mode = ["antipatch", "antidump", "antivm", "ori_original"]
 
-ori_path=os.getcwd()
-path_file=ori_path
-mode="antipatch"
-path_file+=("\\"+mode+"_result")
-print(path_file)
-total_file=os.listdir(path_file)
-total_2gram=defaultdict(lambda: 0)
-total_3gram=defaultdict(lambda: 0)
-total_4gram=defaultdict(lambda: 0)
-index=0
-for i in tqdm(range(len(total_file)), mininterval=1): 
-	target_file=total_file[i]
-	f=open(path_file+"\\"+target_file)
-	opcode=[]
-	while True:
-		line=f.readline()
-		if not line: break
-		opcode.append(line.strip().split("Instruction : ")[1])
-	f.close()
+	for mode_index in range(len(mode)):
+		path_file = ori_path
+		path_file+=("/"+mode[mode_index]+"_result")
+		print(path_file)
+		total_file=os.listdir(path_file)
+		start_time=time.time()
+		for i in tqdm(range(62), mininterval=1):
+			target_file=total_file[i]
+			f=open(path_file+"/"+target_file)
+			opcode=[]
+			while True:
+				line=f.readline()
+				if not line: break
+				if "Instruction" in line:
+					opcode.append(line.strip().split("Instruction : ")[1])
+			f.close()
 
-	_2gram=defaultdict(lambda: 0)
-	_3gram=defaultdict(lambda: 0) 
-	_4gram=defaultdict(lambda: 0)  
-	
-	for i in range(len(opcode)-3):
-		_2gram[(opcode[i], opcode[i+1])]+=1
-		total_2gram[(opcode[i], opcode[i+1])]+=1
-		_3gram[(opcode[i], opcode[i+1], opcode[i+2])]+=1
-		total_3gram[(opcode[i], opcode[i+1], opcode[i+2])]+=1
-		_4gram[(opcode[i], opcode[i+1], opcode[i+2], opcode[i+3])]+=1
-		total_4gram[(opcode[i], opcode[i+1], opcode[i+2], opcode[i+3])]+=1
-	
-	_2gram[(opcode[len(opcode)-3], opcode[len(opcode)-2])]+=1
-	total_2gram[(opcode[len(opcode)-3], opcode[len(opcode)-2])]+=1
-	_2gram[(opcode[len(opcode)-2], opcode[len(opcode)-1])]+=1
-	total_2gram[(opcode[len(opcode)-2], opcode[len(opcode)-1])]+=1
-	
-	_3gram[(opcode[len(opcode)-3], opcode[len(opcode)-2], opcode[len(opcode)-1])]+=1
-	total_3gram[(opcode[len(opcode)-3], opcode[len(opcode)-2], opcode[len(opcode)-1])]+=1
+			for j in range(len(opcode)-3):
+				total_2gram[(opcode[j], opcode[j + 1])] += 1
+				total_3gram[(opcode[j], opcode[j + 1], opcode[j + 2])] += 1
+				total_4gram[(opcode[j], opcode[j + 1], opcode[j + 2], opcode[j + 3])] += 1
 
-	index+=1
-	#print(index, len(opcode), len(_2gram), len(_3gram), len(_4gram))
+			total_2gram[(opcode[len(opcode) - 3], opcode[len(opcode) - 2])] += 1
+			total_2gram[(opcode[len(opcode) - 2], opcode[len(opcode) - 1])] += 1
+			total_3gram[(opcode[len(opcode) - 3], opcode[len(opcode) - 2], opcode[len(opcode) - 1])] += 1
+		print(time.time()-start_time)
 
-print(len(total_2gram))
-print(len(total_3gram))
-print(len(total_4gram))
+	key2List=total_2gram.keys()
+	value2List=total_2gram.values()
+	rows2=zip(key2List, value2List)
+
+	key3List = total_3gram.keys()
+	value3List = total_3gram.values()
+	rows3 = zip(key3List, value3List)
+
+	key4List=total_4gram.keys()
+	value4List=total_4gram.values()
+	rows4=zip(key4List, value4List)
+
+	with open('2gram_opcode.csv', 'w', encoding='utf-8') as f:
+		w2=csv.writer(f)
+		w2.writerow(["2-gram","frequency"])
+		for row in rows2:
+			w2.writerow(row)
+
+	with open('3gram_opcode.csv', 'w', encoding='utf-8') as f:
+		w3=csv.writer(f)
+		w3.writerow(["3-gram","frequency"])
+		for row in rows3:
+			w3.writerow(row)
+
+	with open('4gram_opcode.csv', 'w', encoding='utf-8') as f:
+		w4=csv.writer(f)
+		w4.writerow(["4-gram","frequency"])
+		for row in rows4:
+			w4.writerow(row)
+
+
+if __name__=="__main__":
+	main()
